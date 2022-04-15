@@ -1,11 +1,12 @@
 const asyncHandler = require('express-async-handler')
 const Post = require('../model/postModel')
+const User = require('../model/userModel')
 
-// @desc Get Posts
+// @desc get Posts
 // @route GET /api/posts
 // @access Private
 const getPosts = asyncHandler(async (req, res) => {
-  const posts = await Post.find()
+  const posts = await Post.find({ user: req.user.id })
   res.status(200).json(posts)
 })
 
@@ -20,6 +21,7 @@ const createPost = asyncHandler(async (req, res) => {
 
   const post = await Post.create({
     title: req.body.title,
+    user: req.user.id,
   })
   res.status(200).json(post)
 })
@@ -33,6 +35,20 @@ const editPost = asyncHandler(async (req, res) => {
     res.status(400)
     throw new Error('Post not found')
   }
+
+  const user = await User.findById(req.user.id)
+
+  if (!user) {
+    res.status(401)
+    throw new Error('User not found')
+  }
+
+  // only allow edit post when current user matches post creator
+  if (post.user.toString() !== user.id) {
+    res.status(401)
+    throw new Error('User not authorized to edit this post')
+  }
+
   const updatedPost = await Post.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
   })
@@ -48,6 +64,20 @@ const deletePost = asyncHandler(async (req, res) => {
     res.status(400)
     throw new Error('Post not found')
   }
+
+  const user = await User.findById(req.user.id)
+
+  if (!user) {
+    res.status(401)
+    throw new Error('User not found')
+  }
+
+  // only allow delete post when current user matches post creator
+  if (post.user.toString() !== user.id) {
+    res.status(401)
+    throw new Error('User not authorized to delete this post')
+  }
+
   await post.remove()
   res.status(200).json({ id: req.params.id })
 })

@@ -5,9 +5,11 @@ const {
   editPost,
   deletePost,
 } = require('../controllers/postController')
+const { protect } = require('../middleware/authMiddleware')
+
 const router = express.Router()
 
-router.route('/').get(getPosts).post(createPost)
-router.route('/:id').put(editPost).delete(deletePost)
+router.route('/').get(protect, getPosts).post(protect, createPost)
+router.route('/:id').put(protect, editPost).delete(protect, deletePost)
 
 module.exports = router
